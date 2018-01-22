@@ -1,7 +1,10 @@
 var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
-var Devices = require('./models/Devices');
 var mosca = require('mosca');
+
+var Devices = require('./models/Devices');
+var Weathers = require('./models/Weathers');
+var Datas = require('./models/Datas');
 
 mongoose.connect('mongodb://localhost/IntelligentThings');
 
@@ -24,34 +27,17 @@ var server = new mosca.Server(moscaSettings);
 
 server.on('ready', setup);
 
-// var updateDeviceData = function(deviceID,value,lat,lon){
-//     Devices.findOne({deviceID:deviceID}).exec(function(err,device){
-//         var date = new Date();
-//         device['internalData'].push({'value': value,'date': date});
-//         device['position'].push({'date': date,'lat': lat,'lon': lon});
-//         device.save((err)=>{console.log(err);});
-//     });
-// };
-// var setDeviceOnline = function(deviceID,isOnline){
-//     Devices.findOne({deviceID:deviceID}).exec(function(err,device){
-//         device['online'] = isOnline;
-//         device['lastOnline'] = new Date();
-//         device.save((err)=>{console.log(err);});
-//     });
-// }
-
 //Accepts the connection if the username and password are valid
 var authenticate = function(client, username, password, callback) {
     console.log('authentication...');
     var authorized = false;
     //console.log("deviceID:",username.toString().trim(),"  deviceKey:",password.toString().trim());
     Devices.findOne({deviceKey:username.toString(),deviceSecret:password.toString()},function(err,device){
-        if (device !== null){
+        if (device){
             authorized = true;
             client.deviceID = device.deviceID;
-        }
-        if (authorized) console.log(client.id,'is authorized');
-        else console.log(client.id,'is not authorized');
+            console.log("device: ",client.id,' is authorized');
+        }  
         callback(null, authorized);
     });
 };
@@ -59,16 +45,17 @@ var authenticate = function(client, username, password, callback) {
 // the username from the topic and verifing it is the same of the authorized user
 var authorizePublish = function(client, topic, payload, callback) {
     var topic = topic.split('/');
-    console.log('authorize published : ',payload.toString(),client.deviceID,topic[1] == client.deviceID);
-    callback(null, topic[1] == client.deviceID);
+    console.log('authorize published : ',client.deviceID,topic[1] == client.deviceID);
+    callback(null, ""+topic[1] == ""+client.deviceID);
 };
 
 // In this case the client authorized as alice can subscribe to /users/alice taking
 // the username from the topic and verifing it is the same of the authorized user
 var authorizeSubscribe = function(client, topic, callback) {
+    console.log('subscribe authentication...');
     var topic = topic.split('/');
-    console.log('authorize subscribed :',client.deviceID,topic[1] == client.deviceID);
-    callback(null, topic[1] == client.deviceID);
+    console.log('authorize subscribe : ',client.deviceID,topic[1] == client.deviceID);
+    callback(null, ""+topic[1] == ""+client.deviceID);
 };
 
 server.on('clientConnected', function(client) {
@@ -90,28 +77,48 @@ function setup() {
 };
 
 // fired when a message is received
-server.on('published', function(packet, client) {
+server.on('published', function(packet) {
     var topic = packet.topic.split('/');
     try{
         var packet = JSON.parse(packet.payload.toString());
-        console.log(packet);
-        if (null == packet.value) throw new Error("Invalid value");
-        else if (null == packet.timeStamp) throw new Error("Invalid timeStamp");
-        else if (null == packet.pos) throw new Error("Invalid pos");
-        else {
-            console.log("add data : ",client.deviceID);
-            Devices.findOne({deviceID : client.deviceID},function(err,device){
-                if (device){
-                    device.data.push(packet);
-                    device.save(function(err){
-                        if (err) throw new Error("Save section error");
+        var data = new Datas();
+        data.deviceID = topic[1];
+        if (packet.value) data.value = packet.value;
+        if (packet.timeStamp) data.timeStamp = packet.timeStamp;
+        else data.timeStamp = Date.now().toString()
+        if (packet.pos){
+            Weathers.find({},function(err,weathers){
+                if (weathers){
+                    var currentPos = packet.pos;
+                    var storeWeather;
+                    var closestPos = 999999999;
+                    weathers.forEach(function(weather){
+                        var path = (Math.abs(weather.lat-currentPos[0])+Math.abs(weather.lon-currentPos[1]));
+                        if (closestPos > path){
+                            storeWeather = weather;
+                            closestPos = path
+                        }
+                    });
+                    data.weather = {"main":storeWeather.weather[0].main,"desc":storeWeather.weather[0].description};
+                    data.rain = storeWeather.rain;
+                    data.temp = storeWeather.temp;
+                    data.wind = storeWeather.wind;
+                    data.humidity = storeWeather.humidity;
+                    data.city = storeWeather.city;
+                    data.pos = packet.pos;
+                    data.save();
+                    Devices.findOne({deviceID : topic[1]},function(err,device){
+                        if (device){
+                            device.data = data;
+                            device.save();
+                        }
                     });
                 }
             });
         }
+       
     }
     catch(err){
-        
     }
 });
 
