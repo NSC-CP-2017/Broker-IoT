@@ -7,10 +7,9 @@ var schemaDevices = new Schema({
     deviceKey: String,
     deviceSecret: String,
     online: Boolean,
-    lastOnine: Date,
-    joinData : Array,
+    lastOnline: Date,
     position: Array,
-    data : Array
+    data : Object
 });
 module.exports = mongoose.model('devices',schemaDevices);
 

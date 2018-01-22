@@ -6,6 +6,9 @@ var schemaProjects = new Schema({
     owner: Schema.ObjectId,
     registrationDate: Date,
     devices: Array,
-    warningState : Array
+    warningState : Array,
+    projectID : String,
+    projectKey : String,
+    projectSecret : String
 });
 module.exports = mongoose.model('projects', schemaProjects);
