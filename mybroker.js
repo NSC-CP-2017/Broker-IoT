@@ -37,7 +37,7 @@ var authenticate = function(client, username, password, callback) {
             authorized = true;
             client.deviceID = device.deviceID;
             console.log("device: ",client.id,' is authorized');
-        }  
+        }
         callback(null, authorized);
     });
 };
@@ -116,7 +116,7 @@ server.on('published', function(packet) {
                 }
             });
         }
-       
+
     }
     catch(err){
     }
@@ -129,4 +129,3 @@ server.on('subscribed', function(topic, client) {
 server.on('unsubscribed', function(topic, client) {
     console.log('unsubscribed : ', topic);
 });
-
