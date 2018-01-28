@@ -6,10 +6,8 @@ var schemaData = new Schema({
     value: Object,
     timeStamp: Number,
     weather: Object,
-    rain: Number,
-    temp: Number,
-    wind: Number,
-    city: String,
-    features: Array
+    forecastWeather: Object,
+    features: Array,
+    risks : Object
 });
 module.exports = mongoose.model('data', schemaData);
