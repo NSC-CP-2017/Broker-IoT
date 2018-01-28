@@ -1,11 +1,9 @@
-
-const mongoose = require('mongoose');
-
-const weatherSchema = new mongoose.Schema({
+var mongoose = require('mongoose');
+var Schema = mongoose.Schema;
+var schemaWeather = new Schema({
   city : String,
   city_id : String,
-  lat : Number,
-  lon : Number,
+  pos : { type: { type: String, default:'Point' }, coordinates: [Number] },
   dt : String,
   temp : Number,
   humidity : Number,
@@ -13,6 +11,4 @@ const weatherSchema = new mongoose.Schema({
   rain : Number,
   wind : Number
 });
-const Weather = mongoose.model('weathers', weatherSchema);
-
-module.exports = Weather;
+module.exports = mongoose.model('weather', schemaWeather);
