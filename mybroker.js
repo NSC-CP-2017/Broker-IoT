@@ -2,6 +2,7 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var mosca = require('mosca');
 var waterfall = require('async-waterfall');
+var nodemailer = require('nodemailer');
 
 var Devices = require('./models/Devices');
 var Projects = require('./models/Projects')
@@ -19,6 +20,19 @@ var pubsub = {
     pubsubCollection: 'pubsub',
     mongo: {}
 };
+
+var smtpConfig = {
+    "service": "gmail", // X-Chnage
+    //"secure": true,   // X-Chnage
+    auth: {
+      user: 'moi.chula.platform@gmail.com', // X-Chnage
+      pass: 'qwerty555' // X-Chnage
+    }
+};
+var transporter = nodemailer.createTransport(smtpConfig);
+
+// var SECURE_KEY =   "./tls-key.pem";
+// var SECURE_CERT =  "./tls-cert.pem";
 
 var moscaSettings = {
     interfaces: [
@@ -264,10 +278,11 @@ server.on('published', function (packet,client) {
                         }
                     },function(data,settings,callback){
                         if (device.riskRule){
+                            console.log("compute risk")
                             var score = calculateRisk(device.riskRule,data,settings);
-                            data.risk = {};
-                            data.risk['score'] = score;
-                            data.risk['threshold'] = device.riskRule.threshold;
+                            data.risks = {};
+                            data.risks['score'] = score;
+                            data.risks['threshold'] = device.riskRule.threshold;
                         }
                         callback(null, data);
                     }], function (err, data) {
@@ -314,17 +329,20 @@ server.on('unsubscribed', function (topic, client) {
 
 var calculateRisk = function(risk,data,settings){
     var score = 0;
+    console.log('strart cal')
     if (settings.wea.require == true){
         score += risk.tempSet.coef*data.weather.temp;
-        score += risk.humidSet.coef*data.weather.humidity,risk.humidSet.sq;
-        score += risk.windSet.coef*data.weather.wind,risk.windSet.sq;
-        score += risk.rainSet.coef*data.weather.rain,risk.rainSet.sq;
+        score += risk.humidSet.coef*data.weather.humidity;
+        score += risk.windSet.coef*data.weather.wind;
+        score += risk.rainSet.coef*data.weather.rain;
+        console.log('strart cal1',score)
     }
     if (settings.geoW.require == true){
         data.features.forEach(function(feature){
             if (feature == 'water'){
                 score += risk.waterSet.coef*(1)
             }
+            console.log('strart cal2',score)
         });
     }
     if (settings.geoR.require == true){
@@ -332,12 +350,31 @@ var calculateRisk = function(risk,data,settings){
             if (feature == 'road'){
                 score += risk.roadSet.coef*(1)
             }
+            console.log('strart cal3',score)
         });
     }
     risk.valueSet.forEach(function(set){
         if (data.value[set.key]){
-            score += set.coef*data.value;
+            score += set.coef*data.value[set.key];
+            console.log('strart cal4',score)
         }
     });
+    if (score > risk.threshold){
+        console.log('test');
+        var mailOptions = {
+            to: risk.email,
+            from: 'moi.chula.platform@demo.com',
+            subject: risk.subject,
+            text: risk.content
+        };
+        transporter.sendMail(mailOptions, function(err) {
+            if (err) {
+              console.log(err);
+              console.log("email has not been send");
+            } else {
+              console.log("email has been send");
+            }
+        });
+    }
     return score;
 }
