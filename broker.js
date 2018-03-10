@@ -34,7 +34,7 @@ var schemaReacts = new Schema({
 });
 var pubsubsettings = {
     //using ascoltatore
-    type: 'mongo',		
+    type: 'mongo',
     url: 'mongodb://localhost:27017/mqtt',
     pubsubCollection: 'ascoltatori',
     mongo: {}

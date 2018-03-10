@@ -23,8 +23,14 @@ var pubsub = {
 var moscaSettings = {
     interfaces: [
         { type: "mqtt", port: 1883 },
-        { type: "http", port: 8081, bundle: true }
+        // { type: "mqtts", port: 8082, credentials: {keyPath: '', certPath: ''} }
+        { type: "http", port: 8081, bundle: true },
+        // { type: "https", port: 8083, bundle: true, credentials: {keyPath: '', certPath: ''} }
     ],
+    // secure: {
+    //   certPath: //
+    //   keyPath: //
+    // },
     backend: pubsub,
 };
 
@@ -34,16 +40,16 @@ server.on('ready', setup);
 
 //Accepts the connection if the username and password are valid
 var authenticate = function (client, username, password, callback) {
-    console.log('authentication...');
+    //console.log('authentication...');
     var parseID = (client.id.substring(0, 3) == 'mes') ? client.id.substring(3) : client.id;
-    console.log(parseID);
+    //console.log(parseID);
     Devices.findOne({ deviceID: parseID }, function (err, device) {
-        console.log(device);
+        //console.log(device);
         if (device) {
             if (device.deviceKey == username && device.deviceSecret == password) {
                 client.deviceID = device.deviceID;
                 client.settings = device.settings;
-                console.log("device: ", client.id, ' is authorized');
+                //console.log("device: ", client.id, ' is authorized');
                 client.type = 'device';
                 device.online = true;
                 device.save();
@@ -85,11 +91,11 @@ var authenticate = function (client, username, password, callback) {
             Projects.findOne({ projectKey: username.toString(), projectSecret: password.toString() }, function (err, project) {
                 if (project) {
                     client.type = 'project';
-                    console.log("project: ", client.id, ' is authorized');
+                    //console.log("project: ", client.id, ' is authorized');
                     callback(null, true);
                 }
                 else {
-                    console.log("client: ", client.id, ' is not authorized');
+                    //console.log("client: ", client.id, ' is not authorized');
                     callback(null, false);
                 }
             });
@@ -101,16 +107,16 @@ var authenticate = function (client, username, password, callback) {
 var authorizePublish = function (client, topic, payload, callback) {
     var topic = topic.split('/');
     var authorized = ("" + topic[1] == "" + client.deviceID);
-    console.log('authorize published : ', authorized);
+    //console.log('authorize published : ', authorized);
     callback(null, authorized);
 };
 
 // In this case the client authorized as alice can subscribe to /users/alice taking
 // the username from the topic and verifing it is the same of the authorized user
 var authorizeSubscribe = function (client, topic, callback) {
-    console.log('subscribe authentication...');
+    //console.log('subscribe authentication...');
     var topic = topic.split('/');
-    console.log('authorize subscribe : ', client.id, topic[1] == client.deviceID || client.type == 'project');
+    //console.log('authorize subscribe : ', client.id, topic[1] == client.deviceID || client.type == 'project');
     callback(null, "" + topic[1] == "" + client.deviceID || client.type == 'project');
 };
 
@@ -163,7 +169,7 @@ server.on('published', function (packet,client) {
     if (topic[2] == 'message') {
         try {
             var packet = JSON.parse(packet.payload.toString());
-            console.log(packet)
+            //console.log(packet)
             var data = new Datas();
             data.deviceID = topic[1];
             data.features = [];
@@ -171,14 +177,14 @@ server.on('published', function (packet,client) {
             if (packet.value) data.value = packet.value;
             if (packet.pos) data.pos = packet.pos;
             data.timeStamp = (packet.timeStamp) ? packet.timeStamp : Date.now().toString();
-            console.log(data);
+            //console.log(data);
             Devices.findOne({ deviceID: data.deviceID }, function (err, device) {
                 if (device) {
                     var settings = device.settings;
                     waterfall([function (callback) {
                         callback(null, data, settings);
                     }, function (data, settings, callback) {
-                        console.log("phase1")
+                        //console.log("phase1")
                         if (settings.geoW.require == true) {
                             Waters.findOne({
                                 pos: {
@@ -198,7 +204,7 @@ server.on('published', function (packet,client) {
                         else callback(null, data, settings);
                     }, function (data, settings, callback) {
                         if (settings.geoR.require == true) {
-                            console.log("phase2")
+                            //console.log("phase2")
                             Roads.findOne({
                                 pos: {
                                     $near: {
@@ -267,7 +273,7 @@ server.on('published', function (packet,client) {
                     }], function (err, data) {
                         if (err) console.log("join data error");
                         else {
-                            console.log('pass');
+                            //console.log('pass');
                             data.save();
                             device.data = data;
                             if (device.lastData.length <= 1000){
