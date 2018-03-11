@@ -1,18 +1,20 @@
 {
-	"name": "Smart-IoT-Platform-WebService",
-	"version": "1.0.4",
-	"description": "Smart IoT Platform Web Service",
-	"main": "broker.js",
-	"author": "Wisit Wongchaianukul <i-am-film@hotmail.com>",
-	"license": "CC-BY-NC-ND-4.0",
-	"repository": {
-		"url": "http://IoT-Chula.com"
-	},
-	"dependencies": {
-		"mongoose": "*",
-		"aws-sdk": "*",
-		"request": "*",
-		"nodemailer": "*",
-		"mosca": "*"
-	}
+  "name": "Smart-IoT-Platform-WebService",
+  "version": "1.0.4",
+  "description": "Smart IoT Platform Web Service",
+  "main": "broker.js",
+  "author": "Wisit Wongchaianukul <i-am-film@hotmail.com>",
+  "license": "CC-BY-NC-ND-4.0",
+  "repository": {
+    "url": "http://IoT-Chula.com"
+  },
+  "dependencies": {
+    "aws-sdk": "*",
+    "https": "^1.0.0",
+    "mongoose": "*",
+    "mosca": "*",
+    "nodemailer": "*",
+    "querystring": "^0.2.0",
+    "request": "^2.83.0"
+  }
 }

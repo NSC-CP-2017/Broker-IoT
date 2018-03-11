@@ -2,6 +2,7 @@ var mongoose = require('mongoose');
 var Schema = mongoose.Schema;
 var schemaRisks = new Schema({
   email: String,
+  phone: String,
   subject: String,
   content: String,
   deviceID: String,

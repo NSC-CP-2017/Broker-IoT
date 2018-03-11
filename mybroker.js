@@ -3,6 +3,9 @@ var Schema = mongoose.Schema;
 var mosca = require('mosca');
 var waterfall = require('async-waterfall');
 var nodemailer = require('nodemailer');
+var querystring = require('querystring');
+var request = require('request');
+var https = require('https');
 
 var Devices = require('./models/Devices');
 var Projects = require('./models/Projects')
@@ -11,6 +14,8 @@ var Datas = require('./models/Datas');
 var Waters = require('./models/Waters');
 var Roads = require('./models/Roads');
 var Risks = require('./models/Risks');
+
+var Sms = require('./smsSecret');
 
 mongoose.connect('mongodb://localhost/IntelligentThings');
 
@@ -236,7 +241,7 @@ server.on('published', function (packet,client) {
                         }
                         else callback(null, data, settings);
                     }, function (data, settings, callback) {
-                        console.log("phase3")
+                        //console.log("phase3")
                         if (settings.wea.require == true) {
                             if ((typeof device.lastUpdateWeather == 'undefined') || (device.lastUpdateWeather + 300000 <= Date.now())) {
                                 Weathers.find({
@@ -283,7 +288,7 @@ server.on('published', function (packet,client) {
                             if (score >= device.riskRule.threshold && device.state == 0){
                                 // console.log('edit state to 1');
                                 device.state = 1;
-                                console.log("inside device.state = "+device.state);
+                                //console.log("inside device.state = "+device.state);
                                 var mailOptions = {
                                     to: device.riskRule.email,
                                     from: 'moi.chula.platform@demo.com',
@@ -293,11 +298,39 @@ server.on('published', function (packet,client) {
                                 transporter.sendMail(mailOptions, function(err) {
                                     if (err) {
                                       console.log(err);
-                                      console.log("email has not been send");
+                                      console.log("email has not been sent");
                                     } else {
-                                      console.log("email has been send");
+                                      console.log("email has been sent");
                                     }
                                 });
+                                if(device.riskRule.phone){
+                                  var form = {
+                                    key: Sms.key,
+                                    secret: Sms.secret,
+                                    phone: device.riskRule.phone,
+                                    message: "RISKMO: "+device.name+" is in danger!!!"
+                                  };
+                                  var formData = querystring.stringify(form);
+                                  var options = {
+                                    hostname: 'sms.gipsic.net',
+                                    port: 443,
+                                    path: '/api/send',
+                                    method: 'POST',
+                                    headers: {
+                                      'Content-Type': 'application/x-www-form-urlencoded'
+                                    }
+                                  };
+                                  var rq = https.request(options, (rs)=>{
+                                    rs.on('data', (d) => {
+                                      //console.log(d);
+                                    });
+                                  });
+                                  rq.on('error', (e) => {
+                                    console.log(e);
+                                  });
+                                  rq.write(formData);
+                                  rq.end();
+                                }
                             }
                             else if(score < device.riskRule.threshold && device.state == 1){
                               // console.log("edit state to 0");
@@ -321,7 +354,7 @@ server.on('published', function (packet,client) {
                                 device.lastData.shift();
                                 device.lastData.push(data);
                             }
-                            console.log("device.state = "+device.state);
+                            //console.log("device.state = "+device.state);
                             device.save();
                             var res = {};
                             res['data'] = data;
@@ -353,20 +386,20 @@ server.on('unsubscribed', function (topic, client) {
 
 var calculateRisk = function(risk,data,settings){
     var score = 0;
-    console.log('strart cal')
+    //console.log('strart cal')
     if (settings.wea.require == true){
         score += risk.tempSet.coef*data.weather.temp;
         score += risk.humidSet.coef*data.weather.humidity;
         score += risk.windSet.coef*data.weather.wind;
         score += risk.rainSet.coef*data.weather.rain;
-        console.log('strart cal1',score)
+        //console.log('strart cal1',score)
     }
     if (settings.geoW.require == true){
         data.features.forEach(function(feature){
             if (feature == 'water'){
                 score += risk.waterSet.coef*(1)
             }
-            console.log('strart cal2',score)
+            //console.log('strart cal2',score)
         });
     }
     if (settings.geoR.require == true){
@@ -374,13 +407,13 @@ var calculateRisk = function(risk,data,settings){
             if (feature == 'road'){
                 score += risk.roadSet.coef*(1)
             }
-            console.log('strart cal3',score)
+            //console.log('strart cal3',score)
         });
     }
     risk.valueSet.forEach(function(set){
         if (data.value[set.key]){
             score += set.coef*data.value[set.key];
-            console.log('strart cal4',score)
+            //console.log('strart cal4',score)
         }
     });
     return score;
