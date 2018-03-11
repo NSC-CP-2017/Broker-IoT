@@ -278,8 +278,31 @@ server.on('published', function (packet,client) {
                         }
                     },function(data,settings,callback){
                         if (device.riskRule){
-                            console.log("compute risk")
+                            // console.log("compute risk")
                             var score = calculateRisk(device.riskRule,data,settings);
+                            if (score >= device.riskRule.threshold && device.state == 0){
+                                // console.log('edit state to 1');
+                                device.state = 1;
+                                console.log("inside device.state = "+device.state);
+                                var mailOptions = {
+                                    to: device.riskRule.email,
+                                    from: 'moi.chula.platform@demo.com',
+                                    subject: device.riskRule.subject,
+                                    text: device.riskRule.content
+                                };
+                                transporter.sendMail(mailOptions, function(err) {
+                                    if (err) {
+                                      console.log(err);
+                                      console.log("email has not been send");
+                                    } else {
+                                      console.log("email has been send");
+                                    }
+                                });
+                            }
+                            else if(score < device.riskRule.threshold && device.state == 1){
+                              // console.log("edit state to 0");
+                              device.state = 0;
+                            }
                             data.risks = {};
                             data.risks['score'] = score;
                             data.risks['threshold'] = device.riskRule.threshold;
@@ -298,6 +321,7 @@ server.on('published', function (packet,client) {
                                 device.lastData.shift();
                                 device.lastData.push(data);
                             }
+                            console.log("device.state = "+device.state);
                             device.save();
                             var res = {};
                             res['data'] = data;
@@ -359,22 +383,5 @@ var calculateRisk = function(risk,data,settings){
             console.log('strart cal4',score)
         }
     });
-    if (score > risk.threshold){
-        console.log('test');
-        var mailOptions = {
-            to: risk.email,
-            from: 'moi.chula.platform@demo.com',
-            subject: risk.subject,
-            text: risk.content
-        };
-        transporter.sendMail(mailOptions, function(err) {
-            if (err) {
-              console.log(err);
-              console.log("email has not been send");
-            } else {
-              console.log("email has been send");
-            }
-        });
-    }
     return score;
 }

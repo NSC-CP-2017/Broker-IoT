@@ -17,7 +17,7 @@ var schemaDevices = new Schema({
     lastUpdateFeatures : Date,
     data : Object,
     desc : String,
-    settings : Object
+    settings : Object,
+    state: {type: Number, default: 0}                 //0 == no risk, 1 == have risk
 });
 module.exports = mongoose.model('devices',schemaDevices);
-
