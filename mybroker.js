@@ -386,8 +386,29 @@ server.on('unsubscribed', function (topic, client) {
 
 var calculateRisk = function(risk,data,settings){
     var score = 0;
-    //console.log('strart cal')
     if (settings.wea.require == true){
+      if(data.weather.weather[0].description
+        && data.weather.weather[0].description == "light rain"
+        && data.weather.weather[0].description == "light intensity shower rain"
+        && data.weather.weather[0].description == "shower rain"){
+        data.weather.rain = 1;
+      }
+      if(data.weather.weather[0].description
+        && data.weather.weather[0].description == "moderate rain"
+        && data.weather.weather[0].description == "freezing rain"
+        && data.weather.weather[0].description == "ragged shower rain"){
+        data.weather.rain = 2;
+      }
+      if(data.weather.weather[0].description
+        && data.weather.weather[0].description == "heavy intensity rain"
+        && data.weather.weather[0].description == "heavy intensity shower rain"){
+        data.weather.rain = 3;
+      }
+      if(data.weather.weather[0].description
+        && data.weather.weather[0].description == "very heavy rain"
+        && data.weather.weather[0].description == "extreme rain"){
+        data.weather.rain = 4;
+      }
         score += risk.tempSet.coef*data.weather.temp;
         score += risk.humidSet.coef*data.weather.humidity;
         score += risk.windSet.coef*data.weather.wind;
