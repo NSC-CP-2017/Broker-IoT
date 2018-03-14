@@ -415,6 +415,7 @@ var calculateRisk = function(risk,data,settings){
         score += risk.rainSet.coef*data.weather.rain;
         //console.log('strart cal1',score)
     }
+    score -= 1.76;
     if (settings.geoW.require == true){
         data.features.forEach(function(feature){
             if (feature == 'water'){
